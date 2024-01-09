@@ -1,5 +1,32 @@
 #include "main.h"
 
+pros::Motor left1 (1);
+pros::Motor left2 (2);
+pros::Motor left3 (3);
+pros::Motor right1 (4);
+pros::Motor right2 (5);
+pros::Motor right3 (6);
+pros::Motor_Group LMG ({left1, left2, left3});
+pros::Motor_Group RMG ({right1, right2, right3});
+
+double Kp = 0.1;
+double Ki = 0.01;
+double Kd = 0.01;
+
+double error = 0;
+double integral = 0;
+double derivative = 0;
+double previous_error = 0;
+
+double setpoint = 0;
+
+pros::Imu inert_sens (7);
+
+double get_sensor_value() {
+	double rot = inert_sens.get_rotation();
+	return rot;
+}
+
 /**
  * A callback function for LLEMU's center button.
  *
@@ -60,7 +87,24 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+void autonomous() {
+	//auton code in progress
+	double current_position = get_sensor_value();
+
+    error = setpoint - current_position;
+
+    integral += error;
+    derivative = error - previous_error;
+
+    double output = Kp * error + Ki * integral + Kd * derivative;
+
+    LMG.move(output);
+    RMG.move(output);
+
+    previous_error = error;
+
+    pros::delay(20);
+}
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -76,21 +120,9 @@ void autonomous() {}
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	// configs
-	pros::Motor left1 (1);
-	pros::Motor left2 (2);
-	pros::Motor left3 (3);
-	pros::Motor right1 (4);
-	pros::Motor right2 (5);
-	pros::Motor right3 (6);
-	pros::Motor_Group LMG ({left1, left2, left3});
-	pros::Motor_Group RMG ({right1, right2, right3});
-
-
 
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	pros::Motor left_mtr(1);
-	pros::Motor right_mtr(2);
+	
 
 	while (true) {
 		int left = master.get_analog(ANALOG_LEFT_Y);
