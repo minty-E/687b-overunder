@@ -1,4 +1,6 @@
 #include "main.h"
+#include "pros/adi.h"
+#include "pros/adi.hpp"
 
 pros::Motor left1 (1);
 pros::Motor left2 (2);
@@ -8,6 +10,12 @@ pros::Motor right2 (5);
 pros::Motor right3 (6);
 pros::Motor_Group LMG ({left1, left2, left3});
 pros::Motor_Group RMG ({right1, right2, right3});
+
+pros::Motor cata1 (7);
+pros::Motor cata2 (8);
+
+pros::ADIDigitalOut wings (9);
+
 
 double Kp = 0.1;
 double Ki = 0.01;
@@ -125,15 +133,22 @@ void opcontrol() {
 	
 
 	while (true) {
-		int left = master.get_analog(ANALOG_LEFT_Y);
-		int right = master.get_analog(ANALOG_RIGHT_Y);
+		int left = master.get_analog(ANALOG_LEFT_Y) * -1;
+		int right = master.get_analog(ANALOG_RIGHT_Y) * -1;
 
-		/*if(master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
-			
-		}*/
+		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
+            wings.set_value(true);
+        } else {
+            wings.set_value(false);
+        }
+
+		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)){
+			cata1.move_relative(1000, 200 * 0.9); // change values
+			cata2.move_relative(1000, 200 * 0.9);
+		}
 
 		// implement deadzone if needed
-
+		// make sure this isnt too slow(might have to use relative)
 		LMG.move(left);
 		RMG.move(right);
 
