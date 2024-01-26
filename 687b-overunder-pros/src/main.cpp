@@ -1,32 +1,25 @@
 #include "main.h"
 #include "pros/adi.h"
 #include "pros/adi.hpp"
+#include "pros/misc.h"
+#include "lemlib/api.hpp"
 
-pros::Motor left1 (1);
-pros::Motor left2 (2);
-pros::Motor left3 (3);
-pros::Motor right1 (4);
-pros::Motor right2 (5);
-pros::Motor right3 (6);
+pros::Motor left1 (1, pros::E_MOTOR_GEARSET_36);
+pros::Motor left2 (2, pros::E_MOTOR_GEARSET_36);
+pros::Motor left3 (6, pros::E_MOTOR_GEARSET_36);
+
+pros::Motor right1 (4, pros::E_MOTOR_GEARSET_36);
+pros::Motor right2 (5, pros::E_MOTOR_GEARSET_36);
+pros::Motor right3 (3, pros::E_MOTOR_GEARSET_36);
+
 pros::Motor_Group LMG ({left1, left2, left3});
 pros::Motor_Group RMG ({right1, right2, right3});
 
-pros::Motor cata1 (7);
-pros::Motor cata2 (8);
+pros::Motor cata1 (7, pros::E_MOTOR_GEARSET_36);
+pros::Motor cata2 (8, pros::E_MOTOR_GEARSET_36);
 
-pros::ADIDigitalOut wings (9);
-
-
-double Kp = 0.1;
-double Ki = 0.01;
-double Kd = 0.01;
-
-double error = 0;
-double integral = 0;
-double derivative = 0;
-double previous_error = 0;
-
-double setpoint = 0;
+pros::ADIDigitalOut wingsRight ('C'); //right
+pros::ADIDigitalOut wingsLeft ('B'); //left
 
 pros::Imu inert_sens (7);
 
@@ -96,22 +89,17 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	//auton code in progress
-	double current_position = get_sensor_value();
-
-    error = setpoint - current_position;
-
-    integral += error;
-    derivative = error - previous_error;
-
-    double output = Kp * error + Ki * integral + Kd * derivative;
-
-    LMG.move(output);
-    RMG.move(output);
-
-    previous_error = error;
-
-    pros::delay(20);
+	// fix later
+	LMG.move(100);
+	RMG.move(100);
+	pros::delay(250);
+	RMG.move(100);
+	pros::delay(250);
+	LMG.move(300);
+	RMG.move(300);
+	pros::delay(250);
+	cata1.move_relative(1000, 200 * 0.9);
+	cata2.move_relative(1000, 200 * 0.9);
 }
 
 /**
@@ -131,26 +119,41 @@ void opcontrol() {
 
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
 	
+	bool tR = false;
+	int tL = 0;
 
 	while (true) {
 		int left = master.get_analog(ANALOG_LEFT_Y) * -1;
 		int right = master.get_analog(ANALOG_RIGHT_Y) * -1;
 
-		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
-            wings.set_value(true);
-        } else {
-            wings.set_value(false);
+		if(master.get_digital(DIGITAL_X)){
+            //cata1.move_relative(800, 200 * 0.8);
+			//cata2.move_relative(-800, 200 * 0.8);
+			cata1.move(1000);
+			cata2.move(1000);
         }
 
-		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)){
-			cata1.move_relative(1000, 200 * 0.9); // change values
-			cata2.move_relative(1000, 200 * 0.9);
+		if(master.get_digital(DIGITAL_L1)){
+			wingsLeft.set_value(true);
+		}
+		if(master.get_digital(DIGITAL_L2)){
+			wingsLeft.set_value(false);
+		}
+		if(master.get_digital(DIGITAL_R1)){
+			wingsRight.set_value(true);
+		}
+		if(master.get_digital(DIGITAL_R2)){
+			wingsRight.set_value(false);
 		}
 
-		// implement deadzone if needed
-		// make sure this isnt too slow(might have to use relative)
-		LMG.move(left);
-		RMG.move(right);
+		double AxisDrive = -master.get_analog(ANALOG_LEFT_X) * -1;
+		double AxisRot = -master.get_analog(ANALOG_RIGHT_Y) * -1;
+
+		double setLMG = -(AxisDrive + AxisRot);
+		double setRMG = -(AxisDrive - AxisRot);
+
+		LMG.move_velocity(setLMG);
+		RMG.move_velocity(setRMG);
 
 		pros::delay(20);
 		pros::lcd::set_text(1, "testing");
