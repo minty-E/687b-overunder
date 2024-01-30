@@ -1,4 +1,5 @@
 #include "main.h"
+#include "lemlib/chassis/chassis.hpp"
 #include "pros/adi.h"
 #include "pros/adi.hpp"
 #include "pros/misc.h"
@@ -27,6 +28,42 @@ double get_sensor_value() {
 	double rot = inert_sens.get_rotation();
 	return rot;
 }
+
+// forward/backward PID
+lemlib::ChassisController_t lateralController {
+    8, // kP
+    30, // kD
+    1, // smallErrorRange
+    100, // smallErrorTimeout
+    3, // largeErrorRange
+    500, // largeErrorTimeout
+    5 // slew rate
+};
+// turning PID
+lemlib::ChassisController_t angularController {
+    4, // kP
+    40, // kD
+    1, // smallErrorRange
+    100, // smallErrorTimeout
+    3, // largeErrorRange
+    500, // largeErrorTimeout
+    0 // slew rate
+};
+lemlib::Drivetrain_t drivetrain {
+	&LMG,
+	&RMG,
+	10,
+	3.25,
+	360
+};
+lemlib::OdomSensors_t sensors {
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr
+};
+lemlib::Chassis chassis(drivetrain, lateralController, angularController, sensors);
 
 /**
  * A callback function for LLEMU's center button.
@@ -57,6 +94,7 @@ void initialize() {
 	pros::lcd::set_text(1, "i love vex");
 
 	pros::lcd::register_btn1_cb(on_center_button);
+	chassis.calibrate();
 }
 
 /**
@@ -88,6 +126,7 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
+
 void autonomous() {
 	// fix later
 	LMG.move(100);
