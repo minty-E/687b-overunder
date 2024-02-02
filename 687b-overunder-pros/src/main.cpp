@@ -95,6 +95,7 @@ void initialize() {
 
 	pros::lcd::register_btn1_cb(on_center_button);
 	chassis.calibrate();
+	chassis.setPose(0,0,0);
 }
 
 /**
@@ -129,6 +130,7 @@ void competition_initialize() {}
 
 void autonomous() {
 	// fix later
+	/*
 	LMG.move(100);
 	RMG.move(100);
 	pros::delay(250);
@@ -139,6 +141,8 @@ void autonomous() {
 	pros::delay(250);
 	cata1.move_relative(1000, 200 * 0.9);
 	cata2.move_relative(1000, 200 * 0.9);
+	*/ 
+	chassis.moveTo(10,0, 1000);
 }
 
 /**
