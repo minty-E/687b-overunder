@@ -26,11 +26,7 @@ pros::ADIDigitalOut wingsLeft ('B'); //right
 
 pros::Imu inert_sens ('D');
 
-double get_sensor_value() {
-	double rot = inert_sens.get_rotation();
-	return rot;
-}
-
+/*
 // forward/backward PID
 lemlib::ChassisController_t lateralController {
     8, // kP
@@ -66,7 +62,7 @@ lemlib::OdomSensors_t sensors {
 	&inert_sens
 };
 lemlib::Chassis chassis(drivetrain, lateralController, angularController, sensors);
-
+*/
 /**
  * A callback function for LLEMU's center button.
  *
@@ -93,6 +89,7 @@ void on_center_button() {
  */
 void screen() {
     // loop forever
+	/*
     while (true) {
         lemlib::Pose pose = chassis.getPose(); // get the current position of the robot
         pros::lcd::print(0, "x: %f", pose.x); // print the x position
@@ -100,14 +97,15 @@ void screen() {
         pros::lcd::print(2, "heading: %f", pose.theta); // print the heading
         pros::delay(10);
     }
+	*/
 }
 void initialize() {
 
 	pros::lcd::register_btn1_cb(on_center_button);
-	chassis.calibrate();
-	chassis.setPose(0,0,0);
+	//chassis.calibrate();
+	//chassis.setPose(0,0,0);
 	pros::lcd::initialize(); // initialize brain screen
-    pros::Task screenTask(screen); // create a task to print the position to the screen
+    //pros::Task screenTask(screen); // create a task to print the position to the screen
 }
 
 /**
@@ -173,7 +171,7 @@ void autonomous() {
 
 	//LMG.move_relative(3000,100);
 	//RMG.move_relative(3000,100);
-	chassis.moveTo(10, 0, 15000);
+	//chassis.moveTo(10, 0, 15000);
 }
 
 /**
