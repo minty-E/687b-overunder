@@ -7,22 +7,24 @@
 
 pros::Motor left1 (1, pros::E_MOTOR_GEARSET_36);
 pros::Motor left2 (2, pros::E_MOTOR_GEARSET_36);
-pros::Motor left3 (6, pros::E_MOTOR_GEARSET_36);
+pros::Motor left3 (3, pros::E_MOTOR_GEARSET_36, true);
 
 pros::Motor right1 (4, pros::E_MOTOR_GEARSET_36);
 pros::Motor right2 (5, pros::E_MOTOR_GEARSET_36);
-pros::Motor right3 (3, pros::E_MOTOR_GEARSET_36);
+pros::Motor right3 (6, pros::E_MOTOR_GEARSET_36, true);
 
 pros::Motor_Group LMG ({left1, left2, left3});
 pros::Motor_Group RMG ({right1, right2, right3});
 
-pros::Motor cata1 (7, pros::E_MOTOR_GEARSET_36);
-pros::Motor cata2 (8, pros::E_MOTOR_GEARSET_36);
+pros::Motor cata1 (7, pros::E_MOTOR_GEARSET_36, true); // 6?
+pros::Motor cata2 (8, pros::E_MOTOR_GEARSET_36, true); // 6?
 
-pros::ADIDigitalOut wingsRight ('C'); //right
-pros::ADIDigitalOut wingsLeft ('B'); //left
+pros::Motor intake1 (9, pros::E_MOTOR_GEARSET_36);
 
-pros::Imu inert_sens (7);
+pros::ADIDigitalOut wingsRight ('C'); //left
+pros::ADIDigitalOut wingsLeft ('B'); //right
+
+pros::Imu inert_sens ('D');
 
 double get_sensor_value() {
 	double rot = inert_sens.get_rotation();
@@ -37,7 +39,7 @@ lemlib::ChassisController_t lateralController {
     100, // smallErrorTimeout
     3, // largeErrorRange
     500, // largeErrorTimeout
-    5 // slew rate
+	5
 };
 // turning PID
 lemlib::ChassisController_t angularController {
@@ -52,16 +54,16 @@ lemlib::ChassisController_t angularController {
 lemlib::Drivetrain_t drivetrain {
 	&LMG,
 	&RMG,
-	10,
+	10.5,
 	3.25,
-	360
+	100
 };
 lemlib::OdomSensors_t sensors {
 	nullptr,
 	nullptr,
 	nullptr,
 	nullptr,
-	nullptr
+	&inert_sens
 };
 lemlib::Chassis chassis(drivetrain, lateralController, angularController, sensors);
 
@@ -89,13 +91,23 @@ void on_center_button() {
  * All other competition modes are blocked by initialize; it is recommended
  * to keep execution time for this mode under a few seconds.
  */
+void screen() {
+    // loop forever
+    while (true) {
+        lemlib::Pose pose = chassis.getPose(); // get the current position of the robot
+        pros::lcd::print(0, "x: %f", pose.x); // print the x position
+        pros::lcd::print(1, "y: %f", pose.y); // print the y position
+        pros::lcd::print(2, "heading: %f", pose.theta); // print the heading
+        pros::delay(10);
+    }
+}
 void initialize() {
-	pros::lcd::initialize();
-	pros::lcd::set_text(1, "i love vex");
 
 	pros::lcd::register_btn1_cb(on_center_button);
 	chassis.calibrate();
 	chassis.setPose(0,0,0);
+	pros::lcd::initialize(); // initialize brain screen
+    pros::Task screenTask(screen); // create a task to print the position to the screen
 }
 
 /**
@@ -142,7 +154,26 @@ void autonomous() {
 	cata1.move_relative(1000, 200 * 0.9);
 	cata2.move_relative(1000, 200 * 0.9);
 	*/ 
-	chassis.moveTo(10,0, 1000);
+	/*
+	chassis.moveTo(10, 0, 15000);
+	chassis.turnTo(30, 0, 15000);
+	chassis.moveTo(58, 0, 15000);
+	chassis.turnTo(90, 0, 15000);
+	//shoot preload cata?
+	cata1.move_relative(1000, 200 * 0.9);
+	cata2.move_relative(1000, 200 * 0.9);
+	chassis.turnTo(-45, 0, 15000);
+	chassis.moveTo(-7, 0, 15000);
+	// input method??
+	chassis.moveTo(7, 0, 15000);
+	chassis.turnTo(45, 0, 15000);
+	cata1.move_relative(1000, 200 * 0.9);
+	cata2.move_relative(1000, 200 * 0.9);
+	*/
+
+	//LMG.move_relative(3000,100);
+	//RMG.move_relative(3000,100);
+	chassis.moveTo(10, 0, 15000);
 }
 
 /**
@@ -158,6 +189,8 @@ void autonomous() {
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
+
+ 
 void opcontrol() {
 
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
@@ -166,16 +199,14 @@ void opcontrol() {
 	int tL = 0;
 
 	while (true) {
-		int left = master.get_analog(ANALOG_LEFT_Y) * -1;
-		int right = master.get_analog(ANALOG_RIGHT_Y) * -1;
 
 		if(master.get_digital(DIGITAL_X)){
-            //cata1.move_relative(800, 200 * 0.8);
-			//cata2.move_relative(-800, 200 * 0.8);
 			cata1.move(1000);
 			cata2.move(1000);
-        }
-
+        } else{
+			cata1.move(0);
+			cata2.move(0);
+		}
 		if(master.get_digital(DIGITAL_L1)){
 			wingsLeft.set_value(true);
 		}
@@ -187,6 +218,13 @@ void opcontrol() {
 		}
 		if(master.get_digital(DIGITAL_R2)){
 			wingsRight.set_value(false);
+		}
+		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)){
+			intake1.move_velocity(12000);
+		} else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)){
+			intake1.move_velocity(-12000);
+		} else {
+			intake1.move_velocity(0);
 		}
 
 		double AxisDrive = -master.get_analog(ANALOG_LEFT_X) * -1;
